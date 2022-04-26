@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!--STYLESHEET-->
+    <link rel="stylesheet" href="./css/gstyle.css">
+    <style>
+        input[type=text] {
+            width: 100%;
+            padding: 12px 20px;
+            margin: 8px 0;
+            box-sizing: border-box;
+            border: 2px solid var(--color-primary);
+            border-radius: 4px;
+        }
+
+        input[type=button] {
+            width: auto;
+            background: linear-gradient(135deg, #71b7e6, #9b59b6);
+            color: white;
+            padding: 14px 20px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        input[type=button]:hover {
+            background: linear-gradient(-135deg, #71b7e6, #9b59b6);
+        }
+
+        .dropdown {
+            margin-top: 10px;
+        }
+
+        /* 
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            width: 100%;
+            overflow: auto;
+            box-shadow: 0px 10px 10px 0px rgba(0, 0, 0, 0.4);
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .dropdown-content a {
+            display: block;
+            color: #000000;
+            padding: 5px;
+            text-decoration: none;
+        }
+
+        .dropdown-content a:hover {
+            color: #FFFFFF;
+            background-color: #00A4BD; 
+        }*/
+    </style>
+    <!--MATERIAL CDN-->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Sharp" rel="stylesheet">
+    <title>Assets Tracker</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCO45jVGnUS1dwlS2YBy3QfFh42jpfiakU&libraries=drawing"></script>
+
+</head>
+
+<body>
+    <div class="container">
+        <aside>
+            <div class="top">
+                <div class="logo">
+                    <img src="./images/logo.png" alt="">
+                </div>
+                <div class="close" id="close-btn">
+                    <span class="material-icons-sharp">close</span>
+                </div>
+            </div>
+            <div class="sidebar">
+                <a href="cxc.php"><span class="material-icons-sharp">grid_view</span>
+                    <h3>Dashboard</h3>
+                </a>
+                <a href="geofence.php" class="active"><span class="material-icons-sharp">share_location</span>
+                    <h3>Geofence</h3>
+                </a>
+                <a href="#"><span class="material-icons-sharp">notifications_active</span>
+                    <h3>Notification</h3>
+                    <span class="message-count">12</span>
+                </a>
+                <a href="#"><span class="material-icons-sharp">devices_other</span>
+                    <h3>Device</h3>
+                </a>
+                <a href="logdetails.php"><span class="material-icons-sharp">import_contacts</span>
+                    <h3>Log Details</h3>
+                </a>
+                <a href="#"><span class="material-icons-sharp">feed</span>
+                    <h3>Reports</h3>
+                </a>
+                <a href="#"><span class="material-icons-sharp">settings</span>
+                    <h3>Settings</h3>
+                </a>
+                <a href="#"><span class="material-icons-sharp">help</span>
+                    <h3>Help</h3>
+                </a>
+                <a href="user_register.php"><span class="material-icons-sharp">account_circle</span>
+                    <h3>Accounts</h3>
+                </a>
+                <a href="#"><span class="material-icons-sharp">logout</span>
+                    <h3>Logout</h3>
+                </a>
+            </div>
+        </aside>
+        <!--Google map as the main map with polygon geofence-->
+        <main style="width: 1000%; margin-top: 50px; padding-top: 5px;">
+            <h2>GeoFence</h2>
+            <div class="map-canvas" id="map-canvas" style="margin-top: 10px; height: 60%; margin-left: 1rem;">
+                <script>
+                    var map; // Global declaration of the map
+                    var iw = new google.maps.InfoWindow(); // Global declaration of the infowindow
+                    var lat_longs = new Array();
+                    var markers = new Array();
+                    var drawingManager;
+
+                    function initialize() {
+                        var myLatlng = new google.maps.LatLng(6.882557, 79.888793);
+                        var myOptions = {
+                            zoom: 13,
+                            center: myLatlng,
+                            mapTypeId: google.maps.MapTypeId.ROADMAP
+                        }
+                        map = new google.maps.Map(document.getElementById("map-canvas"), myOptions);
+                        drawingManager = new google.maps.drawing.DrawingManager({
+                            drawingMode: google.maps.drawing.OverlayType.POLYGON,
+                            drawingControl: true,
+                            drawingControlOptions: {
+                                position: google.maps.ControlPosition.TOP_CENTER,
+                                drawingModes: [google.maps.drawing.OverlayType.POLYGON]
+                            },
+                            polygonOptions: {
+                                editable: true
+                            }
+                        });
+                        drawingManager.setMap(map);
+
+                        google.maps.event.addListener(drawingManager, "overlaycomplete", function (event) {
+                            var newShape = event.overlay;
+                            newShape.type = event.type;
+                        });
+
+                        google.maps.event.addListener(drawingManager, "overlaycomplete", function (event) {
+                            overlayClickListener(event.overlay);
+                            $('#vertices').val(event.overlay.getPath().getArray());
+                        });
+                    }
+
+                    function overlayClickListener(overlay) {
+                        google.maps.event.addListener(overlay, "mouseup", function (event) {
+                            $('#vertices').val(overlay.getPath().getArray());
+                        });
+                    }
+                    google.maps.event.addDomListener(window, 'load', initialize);
+
+                    function formatLocs(val_in) {
+                        val_in = val_in.replaceAll(' ', '');
+                        val_in = val_in.replaceAll('(', '');
+                        val_in = val_in.split('),');
+                        val_in[val_in.length - 1] = val_in.at(-1).replaceAll(')', '');
+                        for (let i = 0; i < val_in.length; i++) {
+                            val_in[i] = val_in[i].split(',');
+                            for (let j = 0; j < val_in[i].length; j++) {
+                                val_in[i][j] = parseFloat(val_in[i][j]);
+                            }
+                        }
+                        var result = val_in.map(function (item) {
+                            return {
+                                lat: item[0],
+                                lon: item[1],
+                            };
+                        });
+                        return result;
+                    }
+
+                    window.onload = (event) => {
+                        var baseurl = "https://flespi.io/gw/calcs/591033?fields=selectors";
+                        var xmlhttp = new XMLHttpRequest();
+                        xmlhttp.open("GET", baseurl, true);
+                        xmlhttp.setRequestHeader("Authorization", "FlespiToken Nqy02NoF1G6DJKVayifPYNcpl5JCZ1oAfKq5oCzd9vEG4qFsyK5ml7zw39WQY8g3");
+                        xmlhttp.send(null);
+                        xmlhttp.onreadystatechange = function () {
+                            if (xmlhttp.readyState === 4 && xmlhttp.status === 200) {
+                                var persons = JSON.parse(xmlhttp.responseText);
+                                console.log(persons);
+                                console.log("hello world");
+                                // calLen = (persons.result.selectors).length;
+                                for (var i = 0; i < 3; i++) {
+                                    triangleCoords = persons.result[i].selectors[i].geofences[i].path[i];
+                                    console.log(triangleCoords);
+
+
+                                    // Construct the polygon.
+                                    const bermudaTriangle = new google.maps.Polygon({
+                                        paths: triangleCoords,
+                                        strokeColor: "#FF0000",
+                                        strokeOpacity: 0.8,
+                                        strokeWeight: 2,
+                                        fillColor: "#FF0000",
+                                        fillOpacity: 0.35,
+                                    });
+
+                                    bermudaTriangle.setMap(map);
+                                }
+                            }
+                        }
+
+                    };
+
+                    $(function () {
+                        $('#save').click(function () {
+                            //iterate polygon vertices?
+                            var name = document.getElementById("name").value;
+                            var x = document.getElementById("vertices").value;
+
+                            var a = formatLocs(x);
+                            console.log(a);
+
+                            a = JSON.stringify(a);
+
+                            var baseurl = "https://flespi.io/gw/calcs";
+                            var request = new XMLHttpRequest();
+                            request.open('POST', baseurl, true);
+                            request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
+                            request.setRequestHeader('Authorization', "FlespiToken Nqy02NoF1G6DJKVayifPYNcpl5JCZ1oAfKq5oCzd9vEG4qFsyK5ml7zw39WQY8g3");
+                            request.setRequestHeader('Accept', 'application/json');
+                            request.send('[{"selectors":[{"geofences":[{"path":' + a + ',"type":"polygon","name":"test"}],"type":"geofence"}],"name":"' + name + '"}]');
+
+                            request.onreadystatechange = function () {
+                                if (request.readyState === 4) {
+                                    alert(request.responseText);
+                                }
+                            };
+                        });
+                    });
+
+                    /*Display the geofences which were saved in database*/
+                    // function displayGeofence() {
+                    //     var baseurl = "https://flespi.io/gw/calcs/591033?fields=selectors";
+                    //     var xmlhttp = new XMLHttpRequest();
+                    //     xmlhttp.open("GET", baseurl, false);
+                    //     xmlhttp.setRequestHeader("Authorization", "FlespiToken Nqy02NoF1G6DJKVayifPYNcpl5JCZ1oAfKq5oCzd9vEG4qFsyK5ml7zw39WQY8g3");
+                    //     xmlhttp.send(null);
+                    //     xmlhttp.onreadystatechange = function () {
+                    //         if (xmlhttp.readyState === 4 && xmlhttp.status === 200) {
+                    //             var persons = JSON.parse(xmlhttp.responseText);
+                    //             for (var i = 0; i < persons.result.selectors.length; i++) {
+                    //                 const triangleCoords = persons.result.selectors[i];
+                    //                 console.log(triangleCoords);
+                    //                 // Construct the polygon.
+                    //                 const bermudaTriangle = new google.maps.Polygon({
+                    //                     paths: triangleCoords,
+                    //                     strokeColor: "#FF0000",
+                    //                     strokeOpacity: 0.8,
+                    //                     strokeWeight: 2,
+                    //                     fillColor: "#FF0000",
+                    //                     fillOpacity: 0.35,
+                    //                 });
+
+                    //                 bermudaTriangle.setMap(map);
+                    //             }
+                    //         }
+                    //     }
+                    // }
+
+
+                </script>
+            </div>
+            <form method="post" accept-charset="utf-8" id="map_form" style="margin-top: 20px; margin-left: 1rem; ;">
+                <input type="text" name="name" value="" id="name" placeholder="Name" />
+                <input type="text" name="vertices" value="" id="vertices" />
+                <input type="button" name="save" value="Save!" id="save" />
+
+            </form>
+            <div class="dropdown">
+                <div id="page-wrapper">
+                    <h1>GeoFence List</h1>
+
+                    <!-- <label for="default">Click her to select the geofence</label>
+                    <input type="text" id="default" list="languages" placeholder="e.g. JavaScript">
+                    
+                    <datalist id="languages">
+                      <option value="HTML">
+                      <option value="CSS">
+                      <option value="JavaScript">
+                      <option value="Java">
+                      <option value="Ruby">
+                      <option value="PHP">
+                      <option value="Go">
+                      <option value="Erlang">
+                      <option value="Python">
+                      <option value="C">
+                      <option value="C#">
+                      <option value="C++">
+                    </datalist> -->
+
+
+                    <label for="ajax">Click her to select the geofence</label>
+                    <input type="text" id="ajax" list="json-datalist" placeholder="e.g. datalist">
+                    <datalist id="json-datalist"></datalist>
+
+                    <!-- <script>
+                        // Get the <datalist> and <input> elements.
+                        var dataList = document.getElementById('json-datalist');
+                        var input = document.getElementById('ajax');
+                        var baseurl = "https://flespi.io/gw/devices/2437017/messages?data=%7B%22count%22%3A10%2C%22fields%22%3A%22device.name%2Cposition.latitude%2Cposition.longitude%22%2C%22reverse%22%3Atrue%7D";
+
+                        // Create a new XMLHttpRequest.
+                        var request = new XMLHttpRequest();
+                        request.open("GET", baseurl,true);
+                        request.setRequestHeader("Authorization", " FlespiToken Nqy02NoF1G6DJKVayifPYNcpl5JCZ1oAfKq5oCzd9vEG4qFsyK5ml7zw39WQY8g3");
+                       
+                        // Handle state changes for the request.
+                        request.onreadystatechange = function (response) {
+                            if (request.readyState === 4 && request.status === 200) {
+                                    // Parse the JSON
+                                    var jsonOptions = JSON.parse(request.responseText);
+
+                                    // Loop over the JSON array.
+                                    jsonOptions.forEach(function (item) {
+                                        // Create a new <option> element.
+                                        var option = document.createElement('option');
+                                        // Set the value using the item in the JSON array.
+                                        option.value = item;
+                                        // Add the <option> element to the <datalist>.
+                                        dataList.appendChild(option);
+                                        consol.log(option);
+                                    });
+
+                                    // Update the placeholder text.
+                                    input.placeholder = "e.g. datalist";
+                                } else {
+                                    // An error occured :(
+                                    input.placeholder = "Couldn't load datalist options :(";
+                                }
+                            
+                        };
+
+                        // Update the placeholder text.
+                        input.placeholder = "Loading options...";
+
+                        // Set up and make the request.
+                        // request.open('GET', 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/4621/html-elements.json', true);
+                        request.send(null);
+                    </script> -->
+                </div>
+            </div>
+
+        </main>
+        <div class="right">
+            <div class="top">
+                <button id="menu-btn">
+                    <span class="material-icons-sharp">menu</span>
+                </button>
+                <div class="theme-toggler">
+                    <span class="material-icons-sharp active">light_mode</span>
+                    <span class="material-icons-sharp">dark_mode</span>
+                </div>
+                <div class="profile">
+                    <div class="info">
+                        <p>Hey, <b>Mevan</b></p>
+                        <small class="text-muted">Admin</small>
+                    </div>
+                    <div class="profile-photo">
+                        <img src="./images/Profile-1.png">
+                    </div>
+                </div>
+            </div>
+
+            <!-- <div class="geofence">
+                <script>
+
+                    var baseurl = "https://flespi.io/gw/devices/2437017/messages?data=%7B%22count%22%3A10%2C%22fields%22%3A%22device.name%2Cposition.latitude%2Cposition.longitude%22%2C%22reverse%22%3Atrue%7D";
+
+                    function sends() {
+                        var devNam, devLat, devLon;
+                        var xmlhttp = new XMLHttpRequest();
+                        xmlhttp.open("GET", baseurl, true);
+                        xmlhttp.setRequestHeader("Authorization", " FlespiToken Nqy02NoF1G6DJKVayifPYNcpl5JCZ1oAfKq5oCzd9vEG4qFsyK5ml7zw39WQY8g3");
+
+                        xmlhttp.onreadystatechange = function () {
+                            if (xmlhttp.readyState === 4 && xmlhttp.status === 200) {
+                                var conDev = JSON.parse(xmlhttp.responseText);
+                                devName = conDev.result[1]['device.name'];
+                                console.log(devName);
+                                devLat = conDev.result[1]['position.latitude'];
+
+                                devLon = conDev.result[1]['position.longitude'];
+                                console.log(devLat);
+                                console.log(devLon);
+                                var cmd = { "polygons": { "test": { "path": [{ "lat": 6.882527, "lon": 79.888767 }, { "lat": 6.882500, "lon": 79.888982 }, { "lat": 6.882708, "lon": 79.889099 }, { "lat": 6.882801, "lon": 79.888899 }], "color": "red", "edit": true, "editable": true, "deletable": true } } }
+                                document.getElementById('map').contentWindow.postMessage(`MapView|cmd:${JSON.stringify(cmd)}`, '*')
+
+                                var cdd = { "namedmarkers": { "test": { "latlng": [devLat, devLon]/*[6.882607, 79.888936]*/, "direction": 354, "color": "#f0f", "label": "label", "popup": devName } } }
+                                document.getElementById('map').contentWindow.postMessage(`MapView|cmd:${JSON.stringify(cdd)}`, '*')
+
+                            }
+                        };
+                        xmlhttp.send(null);
+
+
+                    }
+                    window.addEventListener('message', function (event) {
+                        console.log(event)
+                        if (typeof event.data === 'string' && event.data.indexOf('MapView|') === 0) {
+                            var cmd = {}
+                            try {
+                                cmd = JSON.parse(event.data.replace('MapView|state:', ''))
+                            } catch (e) {
+                            }
+                            if (cmd.ready) {
+                                sends()
+                            }
+                        }
+                    })
+                </script>
+                <iframe id="map" src="https://flespi.io/mapview/" frameborder="0" style="height:500px;width:100%"
+                    allowfullscreen></iframe>
+            </div> -->
+
+        </div>
+
+    </div>
+    <script src="./javascript/index.js"></script>
+</body>
+
+</html>
